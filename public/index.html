@@ -19,14 +19,27 @@ window.ALLPARUMI_PHONE='0992796300';
 <!-- HTML → Canvas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
 
 <!-- Gráficos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
     <script>
-const SUPABASE_URL = "";
-const SUPABASE_PUBLISHABLE_KEY = "";
-const SUPABASE_KEY = "";
+const SUPABASE_URL = "https://mssyabasyxhkwmrtzgzv.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_q8jCG70hWocQBAoRQbDsbA_gZ4vZ_sa";
+const SUPABASE_KEY = SUPABASE_PUBLISHABLE_KEY; // compatibilidad interna
+
+const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+        auth:{
+            persistSession:false,
+            autoRefreshToken:false,
+            detectSessionInUrl:false
+        }
+    }
+);
 </script>
 
 
@@ -82,7 +95,7 @@ tr:nth-child(even){background-color:#f8fafc}tr:hover td{background:#e2e8f0}
 .img-upload-area{border:2px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:.2s;background:var(--bg-body);position:relative;overflow:hidden}
 .img-upload-area:hover{border-color:var(--primary)}.img-upload-area img{max-width:100%;max-height:100px;object-fit:contain}
 .prod-thumb{width:40px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border)}
-#toast-container{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:10px}
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:100000;display:flex;flex-direction:column;gap:10px}
 .toast{background:var(--secondary);padding:12px 20px;border-radius:var(--radius);box-shadow:var(--shadow);border-left:4px solid var(--primary);min-width:250px;animation:slideIn .3s ease;font-size:13px;display:flex;align-items:center;gap:10px;color:var(--text-main)}
 @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 #splash{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;background:var(--primary-dark);color:white;flex-direction:column}
@@ -209,7 +222,7 @@ h4.section-title{font-size:13px;font-weight:700;color:var(--primary-dark);margin
 <input type="hidden" id="actividad-id" value="">
 <textarea id="actividad-motivo-cambio" placeholder="Motivo de la edición (Obligatorio)" required></textarea>
 <div class="modal-overlay" id="modal-inv"><div class="modal" style="max-width:900px"><div class="modal-header"><h3 id="inv-modal-title">Nuevo Producto</h3><button class="btn btn-icon" onclick="UI.closeModal('modal-inv')">✕</button></div><div class="modal-body"><form onsubmit="return false;"><input type="hidden" id="inv-id"><div class="grid-4"><div class="col-span-1"><div class="img-upload-area" onclick="document.getElementById('inv-image').click()" style="height:150px;display:flex;align-items:center;justify-content:center"><img id="inv-image-preview" src="" class="hidden" style="max-width:100%;max-height:100%;object-fit:contain"><div id="inv-image-placeholder">📷 Imagen</div><input type="file" id="inv-image" class="hidden" accept="image/*" onchange="Modules.Inventory.handleImage(this)"></div></div><div class="col-span-3" style="grid-column:span 3"><div class="grid-3"><div class="input-group"><label class="label">Código *</label><input type="text" class="input" id="inv-code" required></div><div class="input-group"><label class="label">Nombre *</label><input type="text" class="input" id="inv-name" required></div><div class="input-group"><label class="label">Categoría *</label><input type="text" class="input" id="inv-cat" required></div></div><div class="grid-4"><div class="input-group"><label class="label">Marca</label><input type="text" class="input" id="inv-brand"></div><div class="input-group"><label class="label">Modelo</label><input type="text" class="input" id="inv-model"></div><div class="input-group"><label class="label">Unidad *</label><input type="text" class="input" id="inv-unit" list="unit-options"><datalist id="unit-options"><option value="UND">Unidad</option><option value="Kg">Kilogramo</option><option value="Lt">Litro</option><option value="m2">Metro Cuadrado</option><option value="Caja">Caja</option></datalist></div><div class="input-group"><label class="label">Tipo *</label><select class="select" id="inv-type"><option value="NORMAL">Normal</option><option value="BP">Bajo Pedido</option></select></div></div></div></div><h4 class="section-title">Precios y Stock</h4><div class="grid-5"><div class="input-group"><label class="label">Costo *</label><input type="number" class="input" id="inv-cost" step="0.01" value="0"></div><div class="input-group"><label class="label">Precio 1 *</label><input type="number" class="input" id="inv-price1" step="0.01" value="0"></div><div class="input-group"><label class="label">Precio 2</label><input type="number" class="input" id="inv-price2" step="0.01" value="0"></div><div class="input-group"><label class="label">Stock *</label><input type="number" class="input" id="inv-stock" value="0"></div><div class="input-group"><label class="label">Stock Mín *</label><input type="number" class="input" id="inv-min" value="5"></div></div><div class="grid-4"><div class="input-group"><label class="label">Bodega</label><select class="select" id="inv-warehouse"></select></div><div class="input-group"><label class="label">Proveedor</label><input type="text" class="input" id="inv-provider"></div><div class="input-group"><label class="label">Garantía</label><input type="text" class="input" id="inv-warranty"></div><div class="input-group"><label class="label">IVA (%)</label><input type="number" class="input" id="inv-iva" min="0" max="100" step="0.01" value="15" placeholder="Ej. 15, 5, 3, 1"></div></div><div class="input-group"><label class="label">Descripción</label><textarea class="textarea" id="inv-desc" rows="2"></textarea></div></form></div><div class="modal-footer"><button class="btn btn-outline" onclick="UI.closeModal('modal-inv')">Cancelar</button><button class="btn btn-primary" onclick="Modules.Inventory.save()">Guardar</button></div></div></div>
-<div class="modal-overlay" id="modal-quote"><div class="modal" style="max-width:1000px"><div class="modal-header"><h3 id="quote-modal-title">Nueva Cotización</h3><button class="btn btn-icon" onclick="UI.closeModal('modal-quote')">✕</button></div><div class="modal-body"><input type="hidden" id="quote-id"><div class="grid-4 mb-4"><div class="input-group"><label class="label">Cliente</label><div class="flex gap-2"><select class="select" id="quote-client"><option value="final">Consumidor Final</option></select><button class="btn btn-outline btn-sm" onclick="Modules.Quotes.openClientSearch()">🔍</button></div></div><div class="input-group"><label class="label">Fecha *</label><input type="date" class="input" id="quote-date" required></div><div class="input-group"><label class="label">Validez (días) *</label><input type="number" class="input" id="quote-validity" value="30"></div><div class="input-group"><label class="label">Asesor *</label><select class="select" id="quote-vendor"></select></div></div><div class="card p-4 mb-4" style="background:var(--bg-body)"><div class="flex justify-between items-center mb-2"><label class="label" style="margin:0">Productos</label><button class="btn btn-primary btn-sm" onclick="Modules.Quotes.openProductSearch()">+ Buscar Producto</button></div><div class="table-container"><table><thead><tr><th>Img</th><th>Producto</th><th>Cant</th><th>P. Unitario</th><th>Total</th><th></th></tr></thead><tbody id="quote-items-tbody"></tbody></table></div></div><div class="card p-4 mb-4" style="background:var(--bg-body)"><h4 class="section-title">💳 Forma de Pago (Obligatoria)</h4><div class="grid-3"><div class="input-group"><label class="label">Método *</label><select class="select" id="quote-payment-method" onchange="Modules.Quotes.togglePaymentFields()"><option value="">-- Seleccione --</option><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Tarjeta de Crédito">Tarjeta de Crédito</option><option value="Tarjeta de Débito">Tarjeta de Débito</option></select></div><div class="input-group" id="quote-bank-group" style="display:none"><label class="label">Banco</label><input type="text" class="input" id="quote-payment-bank"></div><div class="input-group" id="quote-voucher-group" style="display:none"><label class="label">N° Comprobante</label><input type="text" class="input" id="quote-payment-voucher"></div></div><div id="quote-credit-card-panel" style="display:none;margin-top:15px"><h4 class="section-title">📋 Datos Tarjeta</h4><div class="grid-5"><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Visa')">💳 Visa</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Mastercard')">💳 MC</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Amex')">💳 Amex</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Diners')">💳 Diners</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Discover')">💳 Disc</div></div><input type="hidden" id="quote-cc-franquicia"><div class="grid-2 mt-2"><div class="input-group"><label class="label">Banco Emisor *</label><select class="select" id="quote-cc-bank"></select></div><div class="input-group"><label class="label">Tipo *</label><select class="select" id="quote-cc-type"><option>Clásica</option><option>Gold</option><option>Platinum</option></select></div></div><div class="grid-3"><div class="input-group"><label class="label">Tipo Pago *</label><select class="select" id="quote-cc-paytype" onchange="Modules.Quotes.toggleInstallments()"><option value="Corriente">Corriente</option><option value="Diferido">Diferido</option></select></div><div class="input-group" id="quote-installments-group" style="display:none"><label class="label">Plazo (Meses)</label><select class="select" id="quote-cc-months" onchange="Modules.Quotes.calcInstallments()"><option>3</option><option>6</option><option>12</option></select></div><div class="input-group" id="quote-modality-group" style="display:none"><label class="label">Modalidad</label><select class="select" id="quote-cc-modality" onchange="Modules.Quotes.calcInstallments()"><option>Sin intereses</option><option>Con intereses</option></select></div></div><div class="financial-summary"><div class="row"><span>Subtotal:</span><span id="cc-subtotal">$0</span></div><div class="row"><span>Intereses:</span><span id="cc-interest">$0</span></div><div class="row total-row"><span>Total a Pagar:</span><span id="cc-total">$0</span></div></div><button class="btn btn-outline btn-sm mt-2" onclick="Modules.Quotes.toggleViewer()">📋 Ver Tabla de Cuotas</button><div id="quote-installments-viewer" class="installments-viewer"><table style="width:100%"><thead><tr><th>Cuota</th><th>Fecha</th><th>Capital</th><th>Interés</th><th>Total</th></tr></thead><tbody id="quote-installments-tbody"></tbody></table></div></div></div><div class="grid-2"><div class="input-group"><label class="label">Observaciones</label><textarea class="textarea" id="quote-obs" rows="2"></textarea></div><div class="flex flex-col justify-end"><div class="flex justify-between items-center p-2"><div class="text-sm">Subtotal: <span id="quote-subtotal" class="font-bold">$0.00</span></div></div><div class="flex justify-between items-center p-2 mt-2"><div class="text-sm w-full">Descuento (%): <input type="number" id="quote-disc-global" class="input" style="width:80px;display:inline-block" value="0" oninput="Modules.Quotes.calculateTotals()"></div></div><div class="flex justify-between items-center p-2 mt-2"><div class="text-sm">IVA: <span id="quote-iva" class="font-bold">$0.00</span></div><div class="text-lg font-bold" style="color:var(--primary)">TOTAL: <span id="quote-total">$0.00</span></div></div></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="UI.closeModal('modal-quote')">Cancelar</button><button class="btn btn-primary" onclick="Modules.Quotes.save()">Guardar Cotización</button></div></div></div>
+<div class="modal-overlay" id="modal-quote"><div class="modal" style="max-width:1000px"><div class="modal-header"><h3 id="quote-modal-title">Nueva Cotización</h3><button class="btn btn-icon" onclick="UI.closeModal('modal-quote')">✕</button></div><div class="modal-body"><input type="hidden" id="quote-id"><div class="grid-4 mb-4"><div class="input-group"><label class="label">Cliente</label><div class="flex gap-2"><select class="select" id="quote-client"><option value="final">Consumidor Final</option></select><button class="btn btn-outline btn-sm" onclick="Modules.Quotes.openClientSearch()">🔍</button></div></div><div class="input-group"><label class="label">Fecha *</label><input type="date" class="input" id="quote-date" required></div><div class="input-group"><label class="label">Validez (días) *</label><input type="number" class="input" id="quote-validity" value="30"></div><div class="input-group"><label class="label">Asesor *</label><select class="select" id="quote-vendor"></select></div></div><div class="card p-4 mb-4" style="background:var(--bg-body)"><div class="flex justify-between items-center mb-2"><label class="label" style="margin:0">Productos</label><button class="btn btn-primary btn-sm" onclick="Modules.Quotes.openProductSearch()">+ Buscar Producto</button></div><div class="table-container"><table><thead><tr><th>Img</th><th>Producto</th><th>Cant</th><th>P. Unitario</th><th style="width:90px">Desc. %</th><th>Total</th><th></th></tr></thead><tbody id="quote-items-tbody"></tbody></table></div></div><div class="card p-4 mb-4" style="background:var(--bg-body)"><h4 class="section-title">💳 Forma de Pago (Obligatoria)</h4><div class="grid-3"><div class="input-group"><label class="label">Método *</label><select class="select" id="quote-payment-method" onchange="Modules.Quotes.togglePaymentFields()"><option value="">-- Seleccione --</option><option value="Efectivo">Efectivo</option><option value="Transferencia">Transferencia</option><option value="Tarjeta de Crédito">Tarjeta de Crédito</option><option value="Tarjeta de Débito">Tarjeta de Débito</option></select></div><div class="input-group" id="quote-bank-group" style="display:none"><label class="label">Banco</label><input type="text" class="input" id="quote-payment-bank"></div><div class="input-group" id="quote-voucher-group" style="display:none"><label class="label">N° Comprobante</label><input type="text" class="input" id="quote-payment-voucher"></div></div><div id="quote-credit-card-panel" style="display:none;margin-top:15px"><h4 class="section-title">📋 Datos Tarjeta</h4><div class="grid-5"><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Visa')">💳 Visa</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Mastercard')">💳 MC</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Amex')">💳 Amex</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Diners')">💳 Diners</div><div class="franquicia-btn" onclick="Modules.Quotes.selectFranquicia(this,'Discover')">💳 Disc</div></div><input type="hidden" id="quote-cc-franquicia"><div class="grid-2 mt-2"><div class="input-group"><label class="label">Banco Emisor *</label><select class="select" id="quote-cc-bank"></select></div><div class="input-group"><label class="label">Tipo *</label><select class="select" id="quote-cc-type"><option>Clásica</option><option>Gold</option><option>Platinum</option></select></div></div><div class="grid-3"><div class="input-group"><label class="label">Tipo Pago *</label><select class="select" id="quote-cc-paytype" onchange="Modules.Quotes.toggleInstallments()"><option value="Corriente">Corriente</option><option value="Diferido">Diferido</option></select></div><div class="input-group" id="quote-installments-group" style="display:none"><label class="label">Plazo (Meses)</label><select class="select" id="quote-cc-months" onchange="Modules.Quotes.calcInstallments()"><option>3</option><option>6</option><option>12</option></select></div><div class="input-group" id="quote-modality-group" style="display:none"><label class="label">Modalidad</label><select class="select" id="quote-cc-modality" onchange="Modules.Quotes.calcInstallments()"><option>Sin intereses</option><option>Con intereses</option></select></div></div><div class="financial-summary"><div class="row"><span>Subtotal:</span><span id="cc-subtotal">$0</span></div><div class="row"><span>Intereses:</span><span id="cc-interest">$0</span></div><div class="row total-row"><span>Total a Pagar:</span><span id="cc-total">$0</span></div></div><button class="btn btn-outline btn-sm mt-2" onclick="Modules.Quotes.toggleViewer()">📋 Ver Tabla de Cuotas</button><div id="quote-installments-viewer" class="installments-viewer"><table style="width:100%"><thead><tr><th>Cuota</th><th>Fecha</th><th>Capital</th><th>Interés</th><th>Total</th></tr></thead><tbody id="quote-installments-tbody"></tbody></table></div></div></div><div class="grid-2"><div class="input-group"><label class="label">Observaciones</label><textarea class="textarea" id="quote-obs" rows="2"></textarea></div><div class="flex flex-col justify-end"><div class="flex justify-between items-center p-2"><div class="text-sm">Subtotal: <span id="quote-subtotal" class="font-bold">$0.00</span></div></div><div class="flex justify-between items-center p-2 mt-2"><div class="text-sm w-full">Descuento (%): <input type="number" id="quote-disc-global" class="input" style="width:80px;display:inline-block" value="0" oninput="Modules.Quotes.calculateTotals()"></div></div><div class="flex justify-between items-center p-2 mt-2"><div class="text-sm">IVA: <span id="quote-iva" class="font-bold">$0.00</span></div><div class="text-lg font-bold" style="color:var(--primary)">TOTAL: <span id="quote-total">$0.00</span></div></div></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="UI.closeModal('modal-quote')">Cancelar</button><button class="btn btn-primary" onclick="Modules.Quotes.save()">Guardar Cotización</button></div></div></div>
 <div class="modal-overlay" id="modal-client-search"><div class="modal" style="max-width:800px"><div class="modal-header"><h3>Buscar Cliente</h3><button class="btn btn-icon" onclick="UI.closeModal('modal-client-search')">✕</button></div><div class="modal-body"><input type="text" class="input mb-4" id="client-search-input" placeholder="Buscar por nombre, cédula o teléfono..." onkeyup="Modules.Quotes.filterClients()"><div class="table-container" style="max-height:400px;overflow-y:auto"><table><thead><tr><th>Nombre</th><th>RUC/Cédula</th><th>Teléfono</th><th>Acción</th></tr></thead><tbody id="client-search-tbody"></tbody></table></div></div></div></div>
 <div class="modal-overlay" id="modal-prod-search"><div class="modal" style="max-width:800px"><div class="modal-header"><h3>Buscar Producto</h3><button class="btn btn-icon" onclick="UI.closeModal('modal-prod-search')">✕</button></div><div class="modal-body"><input type="text" class="input mb-4" id="prod-search-input" placeholder="Buscar..." onkeyup="Modules.Quotes.filterProducts()"><div class="table-container" style="max-height:400px;overflow-y:auto"><table><thead><tr><th>Código</th><th>Producto</th><th>Stock</th><th>Precio</th><th>Acción</th></tr></thead><tbody id="prod-search-tbody"></tbody></table></div></div></div></div>
 <div class="modal-overlay" id="modal-sn"><div class="modal" style="max-width:1000px"><div class="modal-header"><h3 id="sn-modal-title">Nueva Nota de Venta</h3><button class="btn btn-icon" onclick="UI.closeModal('modal-sn')">✕</button></div><div class="modal-body"><input type="hidden" id="sn-id"><div class="grid-4 mb-4"><div class="input-group"><label class="label">Cliente</label><div class="flex gap-2"><select class="select" id="sn-client"><option value="final">Consumidor Final</option></select><button class="btn btn-outline btn-sm" onclick="Modules.SalesNotes.openClientSearch()">🔍</button></div></div><div class="input-group"><label class="label">Fecha *</label><input type="date" class="input" id="sn-date" required></div><div class="input-group"><label class="label">Vendedor *</label><select class="select" id="sn-vendor"></select></div></div><div class="card p-4 mb-4" style="background:var(--bg-body)"><div class="flex justify-between items-center mb-2"><label class="label" style="margin:0">Productos</label><button class="btn btn-primary btn-sm" onclick="Modules.SalesNotes.openProductSearch()">+ Buscar Producto</button></div><div class="table-container"><table><thead><tr><th>Producto</th><th>Cant</th><th>P. Unitario</th><th>Total</th><th></th></tr></thead><tbody id="sn-items-tbody"></tbody></table></div></div><div class="flex justify-end p-2" style="background:var(--bg-body);border-radius:var(--radius)"><div class="text-lg font-bold" style="color:var(--primary)">TOTAL: <span id="sn-total">$0.00</span></div></div></div><div class="modal-footer"><button class="btn btn-outline" onclick="UI.closeModal('modal-sn')">Cancelar</button><button class="btn btn-primary" onclick="Modules.SalesNotes.save()">Guardar</button></div></div></div>
@@ -1067,25 +1080,21 @@ const Utils = {
             : '',
 
     fileToBase64: f =>
-        new Promise((res,rej)=>{
-            const r=new FileReader();
-            r.onerror=rej;
-            r.onload=()=>{
-                if(!/^image\/(png|jpe?g|webp)$/i.test(f.type||'')) return res(r.result);
-                const img=new Image();
-                img.onerror=()=>res(r.result);
-                img.onload=()=>{
-                    const max=1000;
-                    const k=Math.min(1,max/Math.max(img.width,img.height));
-                    const c=document.createElement('canvas');
-                    c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
-                    c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-                    res(/png/i.test(f.type)?c.toDataURL('image/png'):c.toDataURL('image/jpeg',0.82));
-                };
-                img.src=r.result;
-            };
-            r.readAsDataURL(f);
-        }),
+        new Promise(
+            (res,rej) => {
+
+                const r =
+                    new FileReader();
+
+                r.readAsDataURL(f);
+
+                r.onload =
+                    () =>
+                        res(r.result);
+
+                r.onerror = rej;
+            }
+        ),
 
     addDays: (d,n) => {
 
@@ -6743,6 +6752,7 @@ normalizeProduct: function (p, defaults = {}) {
             Math.max(
                 0,
                 this.toNumber(
+                    p.discount_amount ??
                     p.discount ??
                     defaults.discount ??
                     0
@@ -18012,7 +18022,7 @@ printDocument:function(type,id){
                     </td>
 
                     <td class="total-cell">
-                        ${Utils.formatMoney(it.subtotal)}
+                        ${Utils.formatMoney(Number(it.disc_pct)>0?(Number(it.qty)||0)*(Number(it.price)||0):it.subtotal)}
                     </td>
 
                 </tr>
@@ -18090,9 +18100,9 @@ printDocument:function(type,id){
         },
 
         {
-            icon:'card',
-            label:'Forma de pago:',
-            text:'Contado o transferencia bancaria.'
+            icon: 'card',
+            label: 'Forma de pago:',
+            text: 'Contado o transferencia bancaria.\nBanco Pichincha | Cuenta de ahorros N.º 2216357877 | Titular: Luis Patricio Chamba Gaona.'
         },
 
         {
@@ -21105,7 +21115,7 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
 
                     <td class="total-cell">
 
-                        ${Utils.formatMoney(it.subtotal)}
+                        ${Utils.formatMoney(Number(it.disc_pct)>0?(Number(it.qty)||0)*(Number(it.price)||0):it.subtotal)}
 
                     </td>
 
@@ -24066,7 +24076,7 @@ window.addEventListener('DOMContentLoaded',()=>{Auth.init()});
 (function(){
 'use strict';
 
-const CLOUD_FUNCTION_URL = '/api/integra';
+const CLOUD_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/integra-api`;
 const CLOUD_TOKEN_KEY = 'integra_cloud_session_v1';
 const CLOUD_REVISION_KEY = 'integra_cloud_revision_v1';
 const CLOUD_MODE_KEY = 'integra_cloud_mode_v1';
@@ -24098,7 +24108,7 @@ const CloudAPI = window.CloudAPI = {
     async request(action, payload={}, requireSession=true){
         const headers={
             'Content-Type':'application/json',
-            'X-Client':'integra'
+            'apikey':SUPABASE_PUBLISHABLE_KEY
         };
         if(requireSession&&this.token){
             headers['x-integra-session']=this.token;
@@ -24129,10 +24139,10 @@ const CloudAPI = window.CloudAPI = {
             const r=await this.request('bootstrap',{},false);
             this.online=true;
             localStorage.setItem(CLOUD_MODE_KEY,'cloud');
-            this.setStatus('☁️ Servidor conectado',true);
+            this.setStatus('☁️ Supabase conectado',true);
             return r;
         }catch(err){
-            console.warn('Servidor no disponible:',err);
+            console.warn('Supabase bootstrap no disponible:',err);
             this.online=false;
             this.setStatus('💻 Modo local',false);
             return null;
@@ -24149,7 +24159,7 @@ const CloudAPI = window.CloudAPI = {
         this.revision=Number(r.revision||0);
         localStorage.setItem(CLOUD_REVISION_KEY,String(this.revision));
         localStorage.setItem(CLOUD_MODE_KEY,'cloud');
-        this.setStatus('☁️ Servidor conectado',true);
+        this.setStatus('☁️ Supabase conectado',true);
         return r;
     },
 
@@ -24381,7 +24391,7 @@ DB.delete=function(t,id){
     if(t==='users'&&CloudAPI.online&&CloudAPI.token){
         CloudAPI.deleteUser(id).then(()=>{
             if(Modules.Users&&Modules.Users.render)Modules.Users.render();
-        }).catch(err=>UI.toast(err.message||'No se pudo eliminar el usuario','error'));
+        }).catch(err=>UI.toast(err.message||'No se pudo eliminar el usuario en Supabase','error'));
     }
     return _dbDeleteCloud(t,id);
 };
@@ -24565,9 +24575,15 @@ Auth.login=async function(){
         CloudAPI.startPolling();
         UI.toast(`Bienvenido, ${UserIdentity.name()}`,'success');
     }catch(err){
-        console.warn('Login cloud falló; se intenta modo local:',err);
+        console.warn('Login cloud falló:',err);
+        /* Credenciales incorrectas / usuario bloqueado: mostrar el error y NO entrar en modo local. */
+        if(err&&[400,401,403,423,429].includes(err.status)){
+            CloudAPI.setStatus('⚠️ Sesión no iniciada',false);
+            return UI.toast(err.message||'Usuario o contraseña incorrectos','error');
+        }
+        /* Sin conexión con el servidor: solo entonces se permite modo local (los datos NO se comparten). */
         CloudAPI.setStatus('💻 Modo local',false);
-        UI.toast('Servidor no disponible; entrando en modo local.','error');
+        UI.toast('Sin conexión con el servidor: modo local, los datos NO se comparten con otros usuarios.','error');
         return _localAuthLogin();
     }
 };
@@ -24646,7 +24662,7 @@ if(Modules.Users){
         try{
             const r=await CloudAPI.upsertUser(user,password);
             UI.closeModal('modal-user');
-            UI.toast(existing?'Usuario actualizado':'Usuario creado','success');
+            UI.toast(existing?'Usuario actualizado en Supabase':'Usuario creado en Supabase','success');
             this.render();
             DB.save();
             return r;
@@ -24661,7 +24677,7 @@ if(Modules.Users){
     if(!Number.isFinite(Number(p.iva)))p.iva=15;
 });
 
-console.log('✅ Integra Suite Cloud: multiusuario, firma automática e IVA por producto activados.');
+console.log('✅ Integra Suite Cloud: Supabase multiusuario, firma automática e IVA por producto activados.');
 })();
 </script>
 
@@ -25558,7 +25574,7 @@ if(window.CloudAPI){
   const rawRequest=CloudAPI.request.bind(CloudAPI);
   CloudAPI.request=async function(action,payload={},requireSession=true){
     if(location.protocol==='file:'){
-      const err=new Error('Abra el ERP desde su dirección web, no desde un archivo');
+      const err=new Error('Supabase requiere abrir el ERP mediante http://127.0.0.1, no file://');
       err.code='FILE_ORIGIN';
       throw err;
     }
@@ -25814,7 +25830,7 @@ DB.getNextNumber=function(type){
 };
 
 /* ---------- Cotizaciones: precio editable + IVA real por producto ---------- */
-if(window.Modules?.Quotes){
+if(typeof Modules!=='undefined'&&Modules.Quotes){
     Modules.Quotes.updatePrice=function(i,v){
         const it=this.tempItems?.[i];
         if(!it)return;
@@ -25835,7 +25851,8 @@ if(window.Modules?.Quotes){
                     <td>${Utils.escape(it.prodName||'')}<div class="quote-iva-label">IVA del producto: ${rate}%</div></td>
                     <td><input type="number" min="0" step="0.01" class="input" style="width:70px" value="${money(it.qty)}" oninput="Modules.Quotes.updateQty(${i},this.value)"></td>
                     <td><input type="number" min="0" step="0.01" class="input quote-price-input" value="${money(it.price).toFixed(2)}" oninput="Modules.Quotes.updatePrice(${i},this.value)"></td>
-                    <td class="font-bold">${Utils.formatMoney(money(it.price)*money(it.qty))}</td>
+                    <td><input type="number" min="0" max="100" step="0.01" class="input" style="width:72px" placeholder="0" value="${money(it.disc_pct)>0?money(it.disc_pct):''}" oninput="Modules.Quotes.updateDiscount(${i},this.value)" onchange="Modules.Quotes.renderItems()"></td>
+                    <td class="font-bold" id="quote-line-total-${i}">${Utils.formatMoney(money(it.price)*money(it.qty)*(1-clamp(money(it.disc_pct),0,100)/100))}</td>
                     <td><button onclick="Modules.Quotes.removeItem(${i})" style="color:red;background:none;border:none">✕</button></td>
                 </tr>`;
             }).join('');
@@ -25851,6 +25868,15 @@ if(window.Modules?.Quotes){
         this.renderItems();
     };
 
+    Modules.Quotes.updateDiscount=function(i,v){
+        const it=this.tempItems?.[i];
+        if(!it)return;
+        it.disc_pct=clamp(parseFloat(v)||0,0,100);
+        this.calculateTotals();
+        const cell=document.getElementById('quote-line-total-'+i);
+        if(cell)cell.textContent=Utils.formatMoney(money(it.subtotal));
+    };
+
     Modules.Quotes.calculateTotals=function(){
         const items=this.tempItems||[];
         const globalPct=clamp(parseFloat(document.getElementById('quote-disc-global')?.value)||0,0,100);
@@ -25864,8 +25890,14 @@ if(window.Modules?.Quotes){
             const price=Math.max(0,money(item.price));
             const qty=Math.max(0,money(item.qty));
             const gross=price*qty;
-            const discRaw=Math.max(0,money(item.discount));
-            const itemDiscount=discRaw<=100?gross*(discRaw/100):Math.min(gross,discRaw);
+            const pct=clamp(money(item.disc_pct),0,100);
+            let itemDiscount;
+            if(pct>0){
+                itemDiscount=gross*(pct/100);
+            }else{
+                const discRaw=Math.max(0,money(item.discount));
+                itemDiscount=discRaw<=100?gross*(discRaw/100):Math.min(gross,discRaw);
+            }
             const afterItem=Math.max(0,gross-itemDiscount);
             const globalDiscountForLine=afterItem*(globalPct/100);
             const taxable=Math.max(0,afterItem-globalDiscountForLine);
@@ -25875,6 +25907,8 @@ if(window.Modules?.Quotes){
             item.price=price;
             item.qty=qty;
             item.iva=rate;
+            item.disc_pct=pct;
+            item.discount_amount=itemDiscount;
             item.subtotal=afterItem;
             item.taxable=taxable;
             item.iva_amount=tax;
@@ -25943,7 +25977,7 @@ if(window.Modules?.Quotes){
 }
 
 /* ---------- Pedidos: conservar exactamente los totales e IVA de la cotización ---------- */
-if(window.Modules?.Orders){
+if(typeof Modules!=='undefined'&&Modules.Orders){
     const __createOrder=Modules.Orders.createFromQuote?.bind(Modules.Orders);
     if(__createOrder){
         Modules.Orders.createFromQuote=function(){
@@ -26034,20 +26068,18 @@ console.log('✅ Patch 2026-09-18 activo: IVA por producto, COT/PED desde 17, pr
 
 
 
-
 <script>
-/* Cambio de contraseña en el servidor propio */
-Auth.forcePasswordChange=async function(){
-    const cur=this.currentUser; if(!cur)return;
-    const np=prompt('Primer inicio de sesión.\n\nIngrese su nueva contraseña (mínimo 6 caracteres):');
-    if(!np||np.length<6){UI.toast('La contraseña debe tener mínimo 6 caracteres','error');return;}
-    if(np!==prompt('Confirme su nueva contraseña:')){UI.toast('Las contraseñas no coinciden','error');return;}
-    try{
-        await CloudAPI.request('change_password',{password:np},true);
-        cur.force_change=false;cur.first_login=false;
-        UI.toast('Contraseña actualizada','success');
-    }catch(e){UI.toast(e.message||'No se pudo cambiar la contraseña','error');}
-};
+/* Login: indicador "Conectando…" y avisos siempre visibles */
+(function(){
+ const base=Auth.login.bind(Auth);
+ Auth.login=async function(){
+   const btn=document.querySelector('#login-view button[onclick="Auth.login()"]');
+   const txt=btn?btn.textContent:'';
+   if(btn){btn.disabled=true;btn.textContent='Conectando…';}
+   try{return await base();}
+   finally{if(btn){btn.disabled=false;btn.textContent=txt||'Iniciar Sesión';}}
+ };
+})();
 </script>
 </body>
 </html>
