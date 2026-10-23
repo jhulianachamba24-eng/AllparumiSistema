@@ -6203,6 +6203,8 @@ selectProduct:function(id){
     const p=DB.getOne('products',id);
     if(!p)return;
 
+    // console.log('Producto seleccionado:',p); // quita las // si quieres ver los campos del producto en la consola (F12)
+
     if(p.type==='BP'){
         UI.toast('Producto BP. Gestión pronta.','warning');
     }else{
@@ -6213,7 +6215,7 @@ selectProduct:function(id){
     this.tempItems.push({
         prodId:p.id,
         prodName:p.name,
-        prodCode:p.code||'',
+        prodCode:p.code||p.product_code||p.productCode||p.sku||p.codigo||p.barcode||p.ref||'',
         prodImg:p.image,
         unit:p.unit||'UND',
         qty:1,
@@ -6229,10 +6231,23 @@ renderItems:function(){
     const tbody=document.getElementById('quote-items-tbody');
 
     if(tbody){
-        tbody.innerHTML=this.tempItems.map((it,i)=>`
+        tbody.innerHTML=this.tempItems.map((it,i)=>{
+            const rate=Number.isFinite(Number(it.iva))?Number(it.iva):0;
+
+            // Si el ítem no tiene código guardado, lo busca en el producto
+            let code=it.prodCode;
+            if(!code&&it.prodId){
+                const p=DB.getOne('products',it.prodId);
+                if(p){
+                    code=p.code||p.sku||p.codigo||p.barcode||p.ref||'';
+                    it.prodCode=code;
+                }
+            }
+
+            return `
             <tr>
                 <td>${it.prodImg?`<img src="${it.prodImg}" class="prod-thumb">`:''}</td>
-                <td>${Utils.escape(it.prodName||'')}</td>
+                <td>${code?`<strong>[${Utils.escape(code)}]</strong> `:''}${Utils.escape(it.prodName||'')}<div class="quote-iva-label">IVA del producto: ${rate}%</div></td>
                 <td>
                     <input
                         type="number"
@@ -6247,8 +6262,8 @@ renderItems:function(){
                 <td>
                     <button onclick="Modules.Quotes.removeItem(${i})" style="color:red;background:none;border:none">✕</button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`;
+        }).join('');
     }
 
     this.calculateTotals();
@@ -6317,6 +6332,7 @@ togglePaymentFields:function(){
             ?'block'
             :'none';
     }
+
 },
 selectFranquicia:function(el,name){
     document.querySelectorAll('.franquicia-btn')
@@ -6566,7 +6582,7 @@ save:function(){
 
     this.render();
 }},
-SalesNotes:{tempItems:[],render:function(){const cid=Auth.currentCompany?.id;if(!cid)return;let d=DB.getAll('sales_notes',cid).sort((a,b)=>new Date(b.date)-new Date(a.date));const txt=(document.getElementById('filter-sn-text')?.value||'').toLowerCase();const dateStart=document.getElementById('filter-sn-date-start')?.value||'';const dateEnd=document.getElementById('filter-sn-date-end')?.value||'';d=d.filter(n=>{const matchTxt=(n.number+n.client_name).toLowerCase().includes(txt);let matchDate=true;if(dateStart)matchDate=matchDate&&new Date(n.date)>=new Date(dateStart);if(dateEnd)matchDate=matchDate&&new Date(n.date)<=new Date(dateEnd);return matchTxt&&matchDate});const tbody=document.getElementById('sn-tbody');if(tbody)tbody.innerHTML=d.map(n=>`<tr><td><strong>${n.number}</strong></td><td>${Utils.formatDate(n.date)}</td><td>${Utils.escape(n.client_name)}</td><td class="font-bold">${Utils.formatMoney(n.total)}</td><td><span class="badge badge-info">Emitida</span></td><td class="text-right"><button class="btn btn-outline btn-sm" onclick="App.printDocument('sales_note','${n.id}')">🖨️</button> <button class="btn btn-outline btn-sm" onclick="App.downloadPDF('sales_note','${n.id}')">📥</button> <button class="btn btn-primary btn-sm" onclick="Modules.SalesNotes.toInvoice('${n.id}')">→ Factura</button> <button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="Auth.requestPin('delete','sales_notes','${n.id}')">🗑️</button></td></tr>`).join('')||'<tr><td colspan="6" class="text-center p-4">Sin notas</td></tr>'},
+alesNotes:{tempItems:[],render:function(){const cid=Auth.currentCompany?.id;if(!cid)return;let d=DB.getAll('sales_notes',cid).sort((a,b)=>new Date(b.date)-new Date(a.date));const txt=(document.getElementById('filter-sn-text')?.value||'').toLowerCase();const dateStart=document.getElementById('filter-sn-date-start')?.value||'';const dateEnd=document.getElementById('filter-sn-date-end')?.value||'';d=d.filter(n=>{const matchTxt=(n.number+n.client_name).toLowerCase().includes(txt);let matchDate=true;if(dateStart)matchDate=matchDate&&new Date(n.date)>=new Date(dateStart);if(dateEnd)matchDate=matchDate&&new Date(n.date)<=new Date(dateEnd);return matchTxt&&matchDate});const tbody=document.getElementById('sn-tbody');if(tbody)tbody.innerHTML=d.map(n=>`<tr><td><strong>${n.number}</strong></td><td>${Utils.formatDate(n.date)}</td><td>${Utils.escape(n.client_name)}</td><td class="font-bold">${Utils.formatMoney(n.total)}</td><td><span class="badge badge-info">Emitida</span></td><td class="text-right"><button class="btn btn-outline btn-sm" onclick="App.printDocument('sales_note','${n.id}')">🖨️</button> <button class="btn btn-outline btn-sm" onclick="App.downloadPDF('sales_note','${n.id}')">📥</button> <button class="btn btn-primary btn-sm" onclick="Modules.SalesNotes.toInvoice('${n.id}')">→ Factura</button> <button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="Auth.requestPin('delete','sales_notes','${n.id}')">🗑️</button></td></tr>`).join('')||'<tr><td colspan="6" class="text-center p-4">Sin notas</td></tr>'},
 openModal:function(){this.tempItems=[];const sit=document.getElementById('sn-items-tbody');if(sit)sit.innerHTML='';const sd=document.getElementById('sn-date');if(sd)sd.value=Utils.todayInputDate();this.calculateTotals();const cid=Auth.currentCompany?.id;const cs=DB.getAll('clients',cid);const sc=document.getElementById('sn-client');if(sc)sc.innerHTML='<option value="final">Consumidor Final</option>'+cs.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');const si=document.getElementById('sn-id');if(si)si.value='';Auth.loadVendors('sn-vendor');UI.openModal('modal-sn')},
 openProductSearch:function(){window.currentSearchContext='sn';Modules.Quotes.filterProducts();UI.openModal('modal-prod-search')},
 openClientSearch:function(){window.currentSearchContext='sn';Modules.Quotes.filterClients();UI.openModal('modal-client-search')},
@@ -6586,7 +6602,6 @@ CreditNotes: {
 products: [],
 changeProductIndex: null,
 editingId: null,
-
 
 /* =========================================================
    USUARIO ACTUAL
@@ -17932,6 +17947,20 @@ printDocument:function(type,id){
                 it.prodId
             );
 
+            const prodCode=
+                it.prodCode||
+                it.product_code||
+                it.productCode||
+                it.code||
+                it.sku||
+                prod?.code||
+                prod?.product_code||
+                prod?.productCode||
+                prod?.sku||
+                prod?.codigo||
+                prod?.barcode||
+                prod?.ref||
+                '';
             const desc=prod
                 ? (
                     prod.description ||
@@ -17953,6 +17982,8 @@ printDocument:function(type,id){
                     it.prodImg ||
                     it.image ||
                     it.img ||
+
+
 
                     (
                         prod &&
@@ -18003,11 +18034,20 @@ printDocument:function(type,id){
                   `
                 : '';
 
+            const codeCol=type==='quote'
+                ? `
+                    <td class="code-cell" style="font-size:8px;word-break:break-word">
+                        ${prodCode?esc(prodCode):'—'}
+                    </td>
+                  `
+                : '';
+
             return `
 
                 <tr>
 
                     ${photoCol}
+                    ${codeCol}
 
                     <td class="description-cell">
                         ${esc(desc)}
@@ -19874,6 +19914,14 @@ body{
                         : ''
                     }
 
+                    ${
+                        type==='quote'
+                        ? `
+                            <col style="width:20mm">
+                          `
+                        : ''
+                    }
+
                     <col>
 
                     <col style="width:14mm">
@@ -19893,6 +19941,16 @@ body{
                             ? `
                                 <th class="photo-column">
                                     FOTO
+                                </th>
+                              `
+                            : ''
+                        }
+
+                        ${
+                            type==='quote'
+                            ? `
+                                <th class="code-column">
+                                    CÓDIGO
                                 </th>
                               `
                             : ''
@@ -21016,6 +21074,24 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
                 it.prodId
             );
 
+            const productCode=type==='quote'
+                ? (
+                    it.prodCode||
+                    it.product_code||
+                    it.productCode||
+                    it.code||
+                    it.sku||
+                    prod?.code||
+                    prod?.product_code||
+                    prod?.productCode||
+                    prod?.sku||
+                    prod?.codigo||
+                    prod?.barcode||
+                    prod?.ref||
+                    ''
+                )
+                : '';
+
             const desc=prod
                 ? (
                     prod.description||
@@ -21094,6 +21170,7 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
                 <tr>
 
                     ${photoCol}
+                    ${type==='quote'?`<td class="code-cell" style="font-size:8px;word-break:break-word">${productCode?esc(productCode):'—'}</td>`:''}
 
                     <td class="description-cell">
 
@@ -21196,7 +21273,7 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
         {
             icon:'card',
             label:'Forma de pago:',
-            text:'Contado o transferencia bancaria.'
+            text:'Contado o transferencia bancaria.\nBanco Pichincha | Cuenta de ahorros N.º 2216357877 | Titular: Luis Patricio Chamba Gaona.'
         },
 
         {
@@ -22920,6 +22997,14 @@ body{
                             : ''
                         }
 
+                        ${
+                            type==='quote'
+                            ? `
+                                <col style="width:68px">
+                              `
+                            : ''
+                        }
+
                         <col>
 
                         <col style="width:53px">
@@ -22939,6 +23024,16 @@ body{
                                 ? `
                                     <th class="photo-column">
                                         FOTO
+                                    </th>
+                                  `
+                                : ''
+                            }
+
+                            ${
+                                type==='quote'
+                                ? `
+                                    <th class="code-column">
+                                        CÓDIGO
                                     </th>
                                   `
                                 : ''
@@ -24409,10 +24504,46 @@ function productVatForItem(item){
     const p=item?.prodId?DB.getOne('products',item.prodId):null;
     return Number.isFinite(Number(p?.iva))?Number(p.iva):0;
 }
-
 if(Modules.Quotes){
     Modules.Quotes.getCurrentUser=function(){
         return {id:UserIdentity.id(),name:UserIdentity.name()};
+    };
+
+    Modules.Quotes.renderItems=function(){
+        const tbody=document.getElementById('quote-items-tbody');
+
+        if(tbody){
+            tbody.innerHTML=(this.tempItems||[]).map((it,i)=>{
+                const rate=productVatForItem(it);
+
+                // Si el ítem no trae código, lo busca en el producto
+                let code=it.prodCode||'';
+                if(!code&&it.prodId){
+                    const p=DB.getOne('products',it.prodId);
+                    if(p){
+                        code=p.code||p.sku||p.codigo||p.barcode||p.ref||'';
+                        it.prodCode=code;
+                    }
+                }
+
+                return `
+                <tr>
+                    <td>${it.prodImg?`<img src="${it.prodImg}" class="prod-thumb">`:''}</td>
+                    <td>${code?`<strong>[${Utils.escape(code)}]</strong> `:''}${Utils.escape(it.prodName||'')}<div class="quote-iva-label">IVA del producto: ${rate}%</div></td>
+                    <td>
+                        <input type="number" class="input" style="width:60px" value="${it.qty}"
+                            onchange="Modules.Quotes.updateQty(${i},this.value)">
+                    </td>
+                    <td>${Utils.formatMoney(it.price||0)}</td>
+                    <td class="font-bold">${Utils.formatMoney(it.subtotal||0)}</td>
+                    <td>
+                        <button onclick="Modules.Quotes.removeItem(${i})" style="color:red;background:none;border:none">✕</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        this.calculateTotals();
     };
 
     const _quoteOpen=Modules.Quotes.openModal?.bind(Modules.Quotes);
@@ -24449,10 +24580,11 @@ if(Modules.Quotes){
             const afterItem=Math.max(0,lineGross-itemDisc);
             const globalDisc=afterItem*(globalPct/100);
             const taxable=Math.max(0,afterItem-globalDisc);
-            const rate=Math.min(100,Math.max(0,productVatForItem(item)));
+            const rate=productVatForItem(item);
             const tax=taxable*(rate/100);
 
             item.iva=rate;
+            item.discount_amount=itemDisc;
             item.subtotal=afterItem;
             item.taxable=taxable;
             item.iva_amount=tax;
@@ -24461,425 +24593,29 @@ if(Modules.Quotes){
             productDiscount+=itemDisc;
             ivaTotal+=tax;
             const key=String(rate);
-            if(!breakdown[key])breakdown[key]={rate,base:0,tax:0};
+            breakdown[key]=breakdown[key]||{rate,base:0,tax:0};
             breakdown[key].base+=taxable;
             breakdown[key].tax+=tax;
         });
 
         const globalDiscount=subtotal*(globalPct/100);
-        const total=Math.max(0,subtotal-globalDiscount+ivaTotal);
+        const discountTotal=productDiscount+globalDiscount;
+        const taxableTotal=Object.values(breakdown).reduce((sum,entry)=>sum+entry.base,0);
+        const total=Math.max(0,taxableTotal+ivaTotal);
 
         const sub=document.getElementById('quote-subtotal');
         const dis=document.getElementById('quote-discount');
         const iva=document.getElementById('quote-iva');
         const tot=document.getElementById('quote-total');
         if(sub)sub.textContent=Utils.formatMoney(subtotal);
-        if(dis)dis.textContent='-'+Utils.formatMoney(globalDiscount+productDiscount);
+        if(dis)dis.textContent='-'+Utils.formatMoney(discountTotal);
         if(iva)iva.textContent=Utils.formatMoney(ivaTotal);
         if(tot)tot.textContent=Utils.formatMoney(total);
 
-        let bd=document.getElementById('quote-iva-breakdown');
-        if(!bd&&iva){
-            bd=document.createElement('div');
-            bd.id='quote-iva-breakdown';
-            bd.className='text-muted';
-            bd.style.cssText='font-size:10px;margin-top:3px;text-align:right;';
-            const parent=iva.closest('.flex')||iva.parentElement;
-            if(parent&&parent.parentElement)parent.parentElement.appendChild(bd);
-        }
-        if(bd){
-            bd.innerHTML=Object.values(breakdown)
-                .sort((a,b)=>a.rate-b.rate)
-                .map(x=>`IVA ${x.rate}%: <strong>${Utils.formatMoney(x.tax)}</strong>`)
-                .join(' &nbsp; · &nbsp; ');
-        }
-
-        this.currentTotals={subtotal,productDiscount,globalDiscount,totalIva:ivaTotal,total,breakdown};
-        this.calcInstallments();
-    };
-
-    const _quoteSave=Modules.Quotes.save.bind(Modules.Quotes);
-    Modules.Quotes.save=function(){
-        this.calculateTotals();
-        const editId=document.getElementById('quote-id')?.value||'';
-        const beforeLen=DB.data.quotes.length;
-        const result=_quoteSave();
-        let q=editId?DB.getOne('quotes',editId):DB.data.quotes[DB.data.quotes.length-1];
-        if(q&&this.currentTotals){
-            q.tax_breakdown=this.currentTotals.breakdown;
-            q.iva=this.currentTotals.totalIva;
-            q.total=this.currentTotals.total;
-            q.subtotal=this.currentTotals.subtotal;
-            q.created_by_name=q.created_by_name||UserIdentity.name();
-            DB.save();
-        }
-        return result;
+        this.currentTotals={subtotal,productDiscount,globalDiscount,discountTotal,taxableTotal,totalIva:ivaTotal,total,breakdown};
+        try{this.calcInstallments();}catch(e){}
     };
 }
-
-if(Modules.Orders){
-    Modules.Orders.getCurrentUser=function(){
-        return {id:UserIdentity.id(),name:UserIdentity.name()};
-    };
-}
-
-// ---------- Login multiusuario por Edge Function ----------
-const _localAuthLogin=Auth.login.bind(Auth);
-Auth.login=async function(){
-    const username=document.getElementById('login-user')?.value.trim()||'';
-    const password=document.getElementById('login-pass')?.value||'';
-    const companyId=document.getElementById('login-company')?.value||'';
-    const branchId=document.getElementById('login-branch')?.value||'';
-    if(!username||!password)return UI.toast('Ingrese usuario y contraseña','error');
-
-    try{
-        const localSnapshot=JSON.parse(JSON.stringify(DB.data));
-        let bundle=await CloudAPI.login(username,password,companyId,branchId);
-
-        // Primera inicialización: subir la base local disponible al proyecto.
-        if(!bundle.state?._meta?.initialized){
-            CloudAPI.applyBundle({...bundle,state:{...localSnapshot,_meta:{initialized:true}}});
-            await CloudAPI.saveState();
-            bundle=await CloudAPI.resume();
-        }
-
-        CloudAPI.applyBundle(bundle);
-        this.currentUser=bundle.user;
-        this.currentCompany=DB.getOne('companies',bundle.user.system_admin?companyId:bundle.user.company_id) || DB.getOne('companies',companyId) || DB.data.companies[0] || null;
-        this.currentBranch=DB.getOne('branches',branchId) || DB.data.branches.find(b=>b.company_id===this.currentCompany?.id) || null;
-
-        const sd={user:this.currentUser,company:this.currentCompany,branch:this.currentBranch};
-        const remember=document.getElementById('login-remember')?.checked;
-        if(remember){
-            localStorage.setItem('integra_session_active',JSON.stringify(sd));
-            localStorage.setItem(CLOUD_TOKEN_KEY,CloudAPI.token);
-            sessionStorage.removeItem('integra_session_active');
-        }else{
-            sessionStorage.setItem('integra_session_active',JSON.stringify(sd));
-            sessionStorage.setItem(CLOUD_TOKEN_KEY,CloudAPI.token);
-            localStorage.removeItem('integra_session_active');
-        }
-
-        document.getElementById('login-view').style.display='none';
-        document.getElementById('app').style.display='flex';
-        const ud=document.getElementById('user-display');
-        if(ud)ud.textContent=UserIdentity.name();
-        const cc=document.getElementById('current-company');
-        if(cc)cc.textContent=this.currentCompany?.name||'Administrador del Sistema';
-        const cb=document.getElementById('current-branch');
-        if(cb)cb.textContent=this.currentBranch?.name||'';
-
-        App.start();
-        App.checkPermissions?.();
-        await CloudAPI.reserveNumberBlocks();
-        CloudAPI.startPolling();
-        UI.toast(`Bienvenido, ${UserIdentity.name()}`,'success');
-    }catch(err){
-        console.warn('Login cloud falló:',err);
-        /* Credenciales incorrectas / usuario bloqueado: mostrar el error y NO entrar en modo local. */
-        if(err&&[400,401,403,423,429].includes(err.status)){
-            CloudAPI.setStatus('⚠️ Sesión no iniciada',false);
-            return UI.toast(err.message||'Usuario o contraseña incorrectos','error');
-        }
-        /* Sin conexión con el servidor: solo entonces se permite modo local (los datos NO se comparten). */
-        CloudAPI.setStatus('💻 Modo local',false);
-        UI.toast('Sin conexión con el servidor: modo local, los datos NO se comparten con otros usuarios.','error');
-        return _localAuthLogin();
-    }
-};
-
-const _authLogout=Auth.logout?.bind(Auth);
-if(_authLogout){
-    Auth.logout=function(){
-        CloudAPI.logout();
-        return _authLogout();
-    };
-}
-
-// Si existe una sesión cloud guardada, refrescar datos al iniciar la app.
-window.addEventListener('load',async()=>{
-    if(!CloudAPI.token)return;
-    try{
-        const bundle=await CloudAPI.resume();
-        if(bundle){
-            CloudAPI.applyBundle(bundle);
-            if(Auth.currentUser){
-                const remoteUser=(bundle.users||[]).find(u=>u.id===Auth.currentUser.id)||bundle.user;
-                if(remoteUser)Auth.currentUser=remoteUser;
-                if(window.App&&App.refreshAll)App.refreshAll();
-                await CloudAPI.reserveNumberBlocks();
-                CloudAPI.startPolling();
-            }
-        }
-    }catch(e){
-        console.warn('No se pudo reanudar la sesión cloud',e);
-    }
-});
-
-// ---------- Usuarios: niveles/roles compartidos ----------
-if(Modules.Users){
-    const _userOpen=Modules.Users.openModal.bind(Modules.Users);
-    Modules.Users.openModal=function(id){
-        const r=_userOpen(id);
-        const pass=document.getElementById('user-pass');
-        if(pass){
-            pass.value='';
-            pass.required=!id;
-            pass.placeholder=id?'Dejar vacío para conservar':'Contraseña obligatoria';
-        }
-        return r;
-    };
-
-    const _localUserSave=Modules.Users.save.bind(Modules.Users);
-    Modules.Users.save=async function(){
-        if(!CloudAPI.online||!CloudAPI.token)return _localUserSave();
-        if(!Modules.Access.canManageUsers())return UI.toast('No tiene permisos para administrar usuarios','error');
-
-        const gv=id=>document.getElementById(id)?.value||'';
-        const id=gv('user-id')||`usr_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-        const existing=DB.getOne('users',id);
-        const role=Modules.Access.normalizeRole(gv('user-role'));
-        if(role===Modules.Access.ROLES.SYSTEM&&!Modules.Access.isSystemAdmin()){
-            return UI.toast('Solo el Administrador del Sistema puede asignar ese rol','error');
-        }
-        const password=gv('user-pass');
-        if(!existing&&!password)return UI.toast('La contraseña es obligatoria para un usuario nuevo','error');
-        if(!gv('user-username'))return UI.toast('El usuario es obligatorio','error');
-
-        const profile={
-            name:gv('user-name'), lastname:gv('user-lastname'), dni:gv('user-dni'), dob:gv('user-dob'),
-            email:gv('user-email'), phone:gv('user-phone'), city:gv('user-city'), job:gv('user-job'),
-            dept:gv('user-dept'), hire:gv('user-hire'), force_change:gv('user-force-change')==='Sí',
-            photo:this.tempImage||existing?.photo||'', first_login:existing?existing.first_login:true
-        };
-        const user={
-            id,
-            company_id:Modules.Access.isSystemAdmin()?(existing?.company_id||Auth.currentCompany?.id||''):Auth.currentCompany.id,
-            username:gv('user-username').trim(), role, status:gv('user-status')||'Activo',
-            system_admin:role===Modules.Access.ROLES.SYSTEM,
-            profile
-        };
-        try{
-            const r=await CloudAPI.upsertUser(user,password);
-            UI.closeModal('modal-user');
-            UI.toast(existing?'Usuario actualizado en Supabase':'Usuario creado en Supabase','success');
-            this.render();
-            DB.save();
-            return r;
-        }catch(err){
-            return UI.toast(err.message||'No se pudo guardar el usuario','error');
-        }
-    };
-}
-
-// Migrar visualmente el IVA antiguo faltante al editar/listar.
-(DB.data.products||[]).forEach(p=>{
-    if(!Number.isFinite(Number(p.iva)))p.iva=15;
-});
-
-console.log('✅ Integra Suite Cloud: Supabase multiusuario, firma automática e IVA por producto activados.');
-})();
-</script>
-
-
-<!-- Integra Suite Professional Tracking Extension -->
-<script>
-(function(){
-'use strict';
-
-/* ============================================================
-   INTEGRA SUITE CORPORATE - CRM / TRACKING / ALERTAS / DOCUMENTOS
-   Extensión v2026.09.08
-============================================================ */
-
-const Pro = window.IntegraPro = {
-  esc(value){
-    if(window.Utils && typeof Utils.escape==='function') return Utils.escape(String(value ?? ''));
-    return String(value ?? '').replace(/[&<>"']/g, c=>({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
-    }[c]));
-  },
-  dateTimeInput(value=new Date()){
-    const d=value instanceof Date?new Date(value):new Date(value);
-    if(Number.isNaN(d.getTime())) return '';
-    d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
-    return d.toISOString().slice(0,16);
-  },
-  formatDateTime(value){
-    if(!value)return '—';
-    const d=new Date(value);
-    if(Number.isNaN(d.getTime()))return String(value);
-    return d.toLocaleString('es-EC',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-  },
-  formatDate(value){
-    if(!value)return '—';
-    const s=String(value).slice(0,10);
-    const p=s.split('-');
-    return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s;
-  },
-  currentActor(){
-    const u=window.Auth?.currentUser||{};
-    const name=(window.UserIdentity&&typeof UserIdentity.name==='function')
-      ?UserIdentity.name()
-      :([u.name||u.nombre||'',u.lastname||u.apellidos||''].filter(Boolean).join(' ').trim()||u.username||u.email||'Usuario');
-    const id=(window.UserIdentity&&typeof UserIdentity.id==='function')
-      ?UserIdentity.id()
-      :(u.id||u.user_id||u.username||u.email||'');
-    return {id,name};
-  },
-  phoneWhatsApp(phone){
-    let p=String(phone||'').replace(/\D/g,'');
-    if(p.startsWith('00'))p=p.slice(2);
-    if(p.startsWith('0')&&p.length===10)p='593'+p.slice(1);
-    if(!p.startsWith('593')&&p.length===9)p='593'+p;
-    return p;
-  },
-  cloneForAudit(value){
-    if(value===undefined)return undefined;
-    try{
-      const cloned=JSON.parse(JSON.stringify(value));
-      const clean=v=>{
-        if(Array.isArray(v))return v.map(clean);
-        if(v&&typeof v==='object'){
-          const o={};
-          Object.entries(v).forEach(([k,val])=>{
-            if(/photo|image|logo|base64|data_url|attachment_data/i.test(k)){
-              o[k]=val?'[archivo/imagen]':'';
-            }else if(k==='attachments'&&Array.isArray(val)){
-              o[k]=val.map(a=>({name:a.name,type:a.type,size:a.size}));
-            }else o[k]=clean(val);
-          });
-          return o;
-        }
-        return v;
-      };
-      return clean(cloned);
-    }catch(e){return '[no serializable]';}
-  },
-  openView(view){
-    const nav=document.querySelector(`.nav-item[data-view="${view}"]`);
-    if(nav){nav.click();return;}
-    document.querySelectorAll('.view-section').forEach(v=>v.classList.add('hidden'));
-    const el=document.getElementById('view-'+view);if(el)el.classList.remove('hidden');
-  }
-};
-
-/* ---------- Datos auxiliares sincronizables ---------- */
-DB.data.alerts=Array.isArray(DB.data.alerts)?DB.data.alerts:[];
-
-/* ============================================================
-   NUMERACIÓN: COT-000017 EN ADELANTE
-============================================================ */
-const _nextNumberProfessional=DB.getNextNumber.bind(DB);
-DB.getNextNumber=function(type){
-  const generated=_nextNumberProfessional(type);
-  if(type!=='COT')return generated;
-  const n=parseInt(String(generated||'').match(/(\d+)$/)?.[1]||'0',10)||0;
-  if(n>=17)return `COT-${String(n).padStart(6,'0')}`;
-
-  const existing=(DB.data.quotes||[]).map(q=>parseInt(String(q.number||'').match(/(\d+)$/)?.[1]||'0',10)||0);
-  const safe=Math.max(17,...existing.map(x=>x+1));
-  DB.data.counters=DB.data.counters||{};
-  DB.data.counters.COT=Math.max(Number(DB.data.counters.COT)||0,safe);
-  DB.save();
-  return `COT-${String(safe).padStart(6,'0')}`;
-};
-
-/* ============================================================
-   AUDIT TRAIL: CREATE / UPDATE / DELETE, ANTES Y DESPUÉS
-============================================================ */
-const AuditPro = window.AuditPro = {
-  baseInsert:DB.insert.bind(DB),
-  baseUpdate:DB.update.bind(DB),
-  baseDelete:DB.delete.bind(DB),
-  excluded:new Set(['audit','alerts','active_users']),
-  write(action,module,recordId,before,after,description,companyId){
-    if(this.excluded.has(module))return;
-    const actor=Pro.currentActor();
-    const row={
-      id:`AUD-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-      company_id:companyId||after?.company_id||before?.company_id||Auth.currentCompany?.id||'',
-      date:new Date().toISOString(),
-      timestamp:new Date().toISOString(),
-      user:actor.name,
-      user_id:actor.id,
-      user_name:actor.name,
-      action,
-      module,
-      record_id:recordId||after?.id||before?.id||'',
-      description:description||'',
-      before:Pro.cloneForAudit(before),
-      after:Pro.cloneForAudit(after)
-    };
-    this.baseInsert('audit',row);
-  },
-  access(action,description,userLabel){
-    const actor=Pro.currentActor();
-    this.baseInsert('audit',{
-      id:`AUD-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-      company_id:Auth.currentCompany?.id||document.getElementById('login-company')?.value||'',
-      date:new Date().toISOString(),timestamp:new Date().toISOString(),
-      user:actor.name||userLabel||'Usuario',user_id:actor.id,user_name:actor.name||userLabel||'Usuario',
-      action,module:'access',record_id:actor.id||userLabel||'',description,before:null,after:null
-    });
-  },
-  install(){
-    const self=this;
-    DB.insert=function(table,item){
-      const result=self.baseInsert(table,item);
-      if(!self.excluded.has(table)&&result)self.write('CREATE',table,result.id,null,result,'Registro creado',result.company_id);
-      return result;
-    };
-    DB.update=function(table,id,item){
-      const before=DB.getOne(table,id);
-      const copy=before?JSON.parse(JSON.stringify(before)):null;
-      const result=self.baseUpdate(table,id,item);
-      if(!self.excluded.has(table)&&result)self.write('UPDATE',table,id,copy,result,'Registro actualizado',result.company_id);
-      return result;
-    };
-    DB.delete=function(table,id){
-      const before=DB.getOne(table,id);
-      const copy=before?JSON.parse(JSON.stringify(before)):null;
-      const result=self.baseDelete(table,id);
-      if(!self.excluded.has(table))self.write('DELETE',table,id,copy,null,'Registro eliminado',copy?.company_id);
-      return result;
-    };
-  }
-};
-AuditPro.install();
-
-/* Login correcto / fallido */
-if(Auth&&typeof Auth.login==='function'){
-  const _authLoginAudit=Auth.login.bind(Auth);
-  Auth.login=async function(){
-    const attempted=document.getElementById('login-user')?.value||'';
-    const before=Auth.currentUser?.id||null;
-    try{
-      const result=await _authLoginAudit();
-      setTimeout(()=>{
-        const ok=!!Auth.currentUser && (Auth.currentUser.id!==before || !!Auth.currentUser.username);
-        AuditPro.access(ok?'LOGIN':'FAILED_LOGIN',ok?'Inicio de sesión correcto':`Intento de inicio de sesión fallido: ${attempted}`,attempted);
-      },400);
-      return result;
-    }catch(e){
-      AuditPro.access('FAILED_LOGIN',`Intento de inicio de sesión fallido: ${attempted}`,attempted);
-      throw e;
-    }
-  };
-}
-
-let _lastNavAudit='',_lastNavAuditAt=0;
-document.addEventListener('click',e=>{
-  const nav=e.target.closest?.('.nav-item[data-view]');
-  if(!nav)return;
-  const view=nav.dataset.view||'';
-  const now=Date.now();
-  if(view!==_lastNavAudit||now-_lastNavAuditAt>10000){
-    _lastNavAudit=view;_lastNavAuditAt=now;
-    AuditPro.access('SECTION_VISIT',`Sección visitada: ${view}`,Pro.currentActor().name);
-  }
-},true);
-
 /* ============================================================
    ALERT CENTER
 ============================================================ */
@@ -25834,23 +25570,50 @@ if(typeof Modules!=='undefined'&&Modules.Quotes){
     Modules.Quotes.updatePrice=function(i,v){
         const it=this.tempItems?.[i];
         if(!it)return;
-        const price=Math.max(0,parseFloat(v)||0);
-        it.price=price;
-        it.subtotal=price*(parseFloat(it.qty)||0);
-        this.renderItems();
+        const raw=String(v??'').trim().replace(',','.');
+        if(raw===''){
+            it.price=0;
+        }else{
+            const price=Number(raw);
+            if(!Number.isFinite(price)||price<0)return;
+            it.price=price;
+        }
+        it.subtotal=money(it.price)*money(it.qty);
+        this.calculateTotals();
+        const cell=document.getElementById('quote-line-total-'+i);
+        if(cell)cell.textContent=Utils.formatMoney(money(it.subtotal));
     };
 
     Modules.Quotes.renderItems=function(){
         const tbody=document.getElementById('quote-items-tbody');
+        const headerRow=tbody?.closest('table')?.querySelector('thead tr');
+        if(headerRow&&!headerRow.querySelector('[data-quote-code-column]')){
+            const codeHeader=document.createElement('th');
+            codeHeader.textContent='Código';
+            codeHeader.dataset.quoteCodeColumn='true';
+            headerRow.insertBefore(codeHeader,headerRow.children[1]||null);
+        }
         if(tbody){
             tbody.innerHTML=(this.tempItems||[]).map((it,i)=>{
                 const rate=itemVatRate(it);
                 it.iva=rate;
+
+                // Código del producto: del ítem o, si falta, del producto
+                let code=it.prodCode||it.product_code||it.productCode||it.code||it.sku||'';
+                if(!code&&it.prodId){
+                    const p=DB.getOne('products',it.prodId);
+                    if(p){
+                        code=p.code||p.product_code||p.productCode||p.sku||p.codigo||p.barcode||p.ref||'';
+                    }
+                }
+                if(code)it.prodCode=code;
+
                 return `<tr>
                     <td>${it.prodImg?`<img src="${it.prodImg}" class="prod-thumb">`:''}</td>
+                    <td>${code?Utils.escape(code):'—'}</td>
                     <td>${Utils.escape(it.prodName||'')}<div class="quote-iva-label">IVA del producto: ${rate}%</div></td>
-                    <td><input type="number" min="0" step="0.01" class="input" style="width:70px" value="${money(it.qty)}" oninput="Modules.Quotes.updateQty(${i},this.value)"></td>
-                    <td><input type="number" min="0" step="0.01" class="input quote-price-input" value="${money(it.price).toFixed(2)}" oninput="Modules.Quotes.updatePrice(${i},this.value)"></td>
+                    <td><input type="text" inputmode="decimal" autocomplete="off" aria-label="Cantidad" class="input" style="width:70px" value="${money(it.qty)}" oninput="Modules.Quotes.updateQty(${i},this.value)"></td>
+                    <td><input type="text" inputmode="decimal" autocomplete="off" aria-label="Precio unitario" class="input quote-price-input" value="${money(it.price).toFixed(2)}" oninput="Modules.Quotes.updatePrice(${i},this.value)"></td>
                     <td><input type="number" min="0" max="100" step="0.01" class="input" style="width:72px" placeholder="0" value="${money(it.disc_pct)>0?money(it.disc_pct):''}" oninput="Modules.Quotes.updateDiscount(${i},this.value)" onchange="Modules.Quotes.renderItems()"></td>
                     <td class="font-bold" id="quote-line-total-${i}">${Utils.formatMoney(money(it.price)*money(it.qty)*(1-clamp(money(it.disc_pct),0,100)/100))}</td>
                     <td><button onclick="Modules.Quotes.removeItem(${i})" style="color:red;background:none;border:none">✕</button></td>
@@ -25863,9 +25626,18 @@ if(typeof Modules!=='undefined'&&Modules.Quotes){
     Modules.Quotes.updateQty=function(i,v){
         const it=this.tempItems?.[i];
         if(!it)return;
-        it.qty=Math.max(0,parseFloat(v)||0);
+        const raw=String(v??'').trim().replace(',','.');
+        if(raw===''){
+            it.qty=0;
+        }else{
+            const qty=Number(raw);
+            if(!Number.isFinite(qty)||qty<0)return;
+            it.qty=qty;
+        }
         it.subtotal=money(it.price)*it.qty;
-        this.renderItems();
+        this.calculateTotals();
+        const cell=document.getElementById('quote-line-total-'+i);
+        if(cell)cell.textContent=Utils.formatMoney(money(it.subtotal));
     };
 
     Modules.Quotes.updateDiscount=function(i,v){
@@ -25975,7 +25747,6 @@ if(typeof Modules!=='undefined'&&Modules.Quotes){
         return result;
     };
 }
-
 /* ---------- Pedidos: conservar exactamente los totales e IVA de la cotización ---------- */
 if(typeof Modules!=='undefined'&&Modules.Orders){
     const __createOrder=Modules.Orders.createFromQuote?.bind(Modules.Orders);
