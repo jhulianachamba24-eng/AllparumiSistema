@@ -17251,8 +17251,10 @@ printDocument:function(type,id){
         const price=Math.max(0,finNum(it.price ?? it.unitPrice ?? it.precio ?? 0));
         const gross=qty*price;
         const explicitDiscount=finNum(it.discount_amount ?? it.discountAmount);
-        const rawDiscount=Math.max(0,finNum(it.discount ?? it.descuento));
-        const isAmount=it.discount_type==='amount'||it.discountType==='amount'||it.discount_is_amount===true;
+        const itemDiscountPercent=it.disc_pct ?? it.discount_pct ?? it.discountPct;
+        const hasItemDiscountPercent=itemDiscountPercent!==undefined&&itemDiscountPercent!==null&&itemDiscountPercent!=='';
+        const rawDiscount=Math.max(0,finNum(hasItemDiscountPercent?itemDiscountPercent:(it.discount ?? it.descuento)));
+        const isAmount=!hasItemDiscountPercent&&(it.discount_type==='amount'||it.discountType==='amount'||it.discount_is_amount===true);
         const lineDiscount=explicitDiscount>0?Math.min(gross,explicitDiscount):(rawDiscount>0?(isAmount?Math.min(gross,rawDiscount):(rawDiscount<=100?gross*(rawDiscount/100):Math.min(gross,rawDiscount))):0);
         const afterItemDiscount=Math.max(0,gross-lineDiscount);
         const product=it.prodId?DB.getOne('products',it.prodId):null;
@@ -17277,7 +17279,9 @@ printDocument:function(type,id){
     if(!hasStoredIva&&!Object.keys(taxBreakdown).length&&itemFinancials.length){const globalFactor=subtotalAfterItemDiscount>0?Math.max(0,(subtotalAfterItemDiscount-calculatedGlobalDiscount)/subtotalAfterItemDiscount):1;itemFinancials.forEach((x)=>{const base=x.afterItemDiscount*globalFactor,tax=base*(x.vatRate/100);ivaAmount+=tax;if(x.vatRate>0){const key=String(x.vatRate);taxBreakdown[key]=taxBreakdown[key]||{rate:x.vatRate,base:0,tax:0};taxBreakdown[key].base+=base;taxBreakdown[key].tax+=tax;}});}
     const storedTotal=finNum(doc.total);
     const finalTotal=storedTotal>0?storedTotal:(subtotalAfterDiscount+ivaAmount);
-    const subtotalFormatted=Utils.formatMoney(grossSubtotal),discountFormatted=Utils.formatMoney(discountAmount),ivaFormatted=Utils.formatMoney(ivaAmount),totalFormatted=Utils.formatMoney(finalTotal);
+    const formatQuoteNumber=value=>Utils.formatMoney(value).replace(/[^\d,.-]/g,'');
+    const formatSummaryMoney=value=>type==='quote'?formatQuoteNumber(value):Utils.formatMoney(value);
+    const subtotalFormatted=formatSummaryMoney(grossSubtotal),discountFormatted=formatSummaryMoney(discountAmount),ivaFormatted=formatSummaryMoney(ivaAmount),totalFormatted=Utils.formatMoney(finalTotal);
     const ivaRowsHtml=ivaAmount>0?`<div class="total-row"><span>IVA:</span><span>${ivaFormatted}</span></div>`:'';
 
     /* ============================================================
@@ -17940,7 +17944,18 @@ printDocument:function(type,id){
 
     }else{
 
-        itemsHtml=items.map((it)=>{
+        itemsHtml=items.map((it,index)=>{
+
+            const lineFinancial=itemFinancials[index];
+            const lineTotal=type==='quote'
+                ?(lineFinancial?.afterItemDiscount??((Number(it.qty)||0)*(Number(it.price)||0)))
+                :(Number(it.disc_pct)>0?(Number(it.qty)||0)*(Number(it.price)||0):it.subtotal);
+            const unitPriceDisplay=type==='quote'
+                ?formatQuoteNumber(Number(it.price)||0)
+                :Utils.formatMoney(it.price);
+            const lineTotalDisplay=type==='quote'
+                ?formatQuoteNumber(lineTotal)
+                :Utils.formatMoney(lineTotal);
 
             const prod=DB.getOne(
                 'products',
@@ -17961,7 +17976,14 @@ printDocument:function(type,id){
                 prod?.barcode||
                 prod?.ref||
                 '';
-            const desc=prod
+            const desc=type==='quote'
+                ? (
+                    it.prodName||
+                    prod?.name||
+                    prod?.description||
+                    ''
+                )
+                : prod
                 ? (
                     prod.description ||
                     it.prodName ||
@@ -18058,11 +18080,11 @@ printDocument:function(type,id){
                     </td>
 
                     <td class="price-cell">
-                        ${Utils.formatMoney(it.price)}
+                        ${unitPriceDisplay}
                     </td>
 
                     <td class="total-cell">
-                        ${Utils.formatMoney(Number(it.disc_pct)>0?(Number(it.qty)||0)*(Number(it.price)||0):it.subtotal)}
+                        ${lineTotalDisplay}
                     </td>
 
                 </tr>
@@ -19957,7 +19979,7 @@ body{
                         }
 
                         <th class="description-column">
-                            DESCRIPCIÓN
+                            ${type==='quote'?'PRODUCTO':'DESCRIPCIÓN'}
                         </th>
 
                         <th class="quantity-column">
@@ -19969,7 +19991,7 @@ body{
                         </th>
 
                         <th class="total-column">
-                            TOTAL SIN IVA
+                            ${type==='quote'?'TOTAL ÍTEM SIN IVA':'TOTAL SIN IVA'}
                         </th>
 
                     </tr>
@@ -20947,12 +20969,14 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
 
         let lineDiscount=0;
         const explicitDiscount=finNum(it.discount_amount ?? it.discountAmount);
-        const rawDiscount=Math.max(0,finNum(it.discount ?? it.descuento));
+        const itemDiscountPercent=it.disc_pct ?? it.discount_pct ?? it.discountPct;
+        const hasItemDiscountPercent=itemDiscountPercent!==undefined&&itemDiscountPercent!==null&&itemDiscountPercent!=='';
+        const rawDiscount=Math.max(0,finNum(hasItemDiscountPercent?itemDiscountPercent:(it.discount ?? it.descuento)));
 
         if(explicitDiscount>0){
             lineDiscount=Math.min(gross,explicitDiscount);
         }else if(rawDiscount>0){
-            const isAmount=it.discount_type==='amount'||it.discountType==='amount'||it.discount_is_amount===true;
+            const isAmount=!hasItemDiscountPercent&&(it.discount_type==='amount'||it.discountType==='amount'||it.discount_is_amount===true);
             lineDiscount=isAmount
                 ?Math.min(gross,rawDiscount)
                 :(rawDiscount<=100?gross*(rawDiscount/100):Math.min(gross,rawDiscount));
@@ -21018,9 +21042,11 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
     const calculatedTotal=subtotalAfterDiscount+ivaAmount;
     const finalTotal=storedTotal>0?storedTotal:calculatedTotal;
 
-    const subtotalFormatted=Utils.formatMoney(grossSubtotal);
-    const discountFormatted=Utils.formatMoney(discountAmount);
-    const ivaFormatted=Utils.formatMoney(ivaAmount);
+    const formatQuoteNumber=value=>Utils.formatMoney(value).replace(/[^\d,.-]/g,'');
+    const formatSummaryMoney=value=>type==='quote'?formatQuoteNumber(value):Utils.formatMoney(value);
+    const subtotalFormatted=formatSummaryMoney(grossSubtotal);
+    const discountFormatted=formatSummaryMoney(discountAmount);
+    const ivaFormatted=formatSummaryMoney(ivaAmount);
     const totalFormatted=Utils.formatMoney(finalTotal);
 
     const ivaRowsHtml=ivaAmount>0
@@ -21067,7 +21093,18 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
 
     }else{
 
-        itemsHtml=items.map((it)=>{
+        itemsHtml=items.map((it,index)=>{
+
+            const lineFinancial=itemFinancials[index];
+            const lineTotal=type==='quote'
+                ?(lineFinancial?.afterItemDiscount??((Number(it.qty)||0)*(Number(it.price)||0)))
+                :(Number(it.disc_pct)>0?(Number(it.qty)||0)*(Number(it.price)||0):it.subtotal);
+            const unitPriceDisplay=type==='quote'
+                ?formatQuoteNumber(Number(it.price)||0)
+                :Utils.formatMoney(it.price);
+            const lineTotalDisplay=type==='quote'
+                ?formatQuoteNumber(lineTotal)
+                :Utils.formatMoney(lineTotal);
 
             const prod=DB.getOne(
                 'products',
@@ -21092,7 +21129,14 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
                 )
                 : '';
 
-            const desc=prod
+            const desc=type==='quote'
+                ? (
+                    it.prodName||
+                    prod?.name||
+                    prod?.description||
+                    ''
+                )
+                : prod
                 ? (
                     prod.description||
                     it.prodName||
@@ -21186,13 +21230,13 @@ downloadPDF:async function(type,id,outputMode='download',printWindow=null){
 
                     <td class="price-cell">
 
-                        ${Utils.formatMoney(it.price)}
+                        ${unitPriceDisplay}
 
                     </td>
 
                     <td class="total-cell">
 
-                        ${Utils.formatMoney(Number(it.disc_pct)>0?(Number(it.qty)||0)*(Number(it.price)||0):it.subtotal)}
+                        ${lineTotalDisplay}
 
                     </td>
 
@@ -23041,7 +23085,7 @@ body{
 
                             <th class="description-column">
 
-                                DESCRIPCIÓN
+                                ${type==='quote'?'PRODUCTO':'DESCRIPCIÓN'}
 
                             </th>
 
@@ -23059,7 +23103,7 @@ body{
 
                             <th class="total-column">
 
-                                TOTAL SIN IVA
+                                ${type==='quote'?'TOTAL ÍTEM SIN IVA':'TOTAL SIN IVA'}
 
                             </th>
 
